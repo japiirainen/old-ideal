@@ -13,7 +13,7 @@ endif()
 
 add_library(math src/math.cpp)
 
-# `idea` executable
+# `ideal` executable
 add_executable(ideal src/main.cpp)
 target_link_libraries(ideal math)
 
