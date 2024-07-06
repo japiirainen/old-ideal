@@ -16,37 +16,62 @@
         , ...
         }:
         let
-          inherit (pkgs) cmake;
           name = "ideal";
           version = "0.0.1";
         in
         {
           devShells.default = pkgs.mkShell {
             inputsFrom = [ self'.packages.default ];
+            packages = with pkgs; [ gtest ];
           };
 
-          packages = {
-            default = pkgs.stdenv.mkDerivation {
-              inherit version;
-              pname = name;
-              src = ./.;
+          packages =
+            let
+              ideal = pkgs.stdenv.mkDerivation {
+                inherit version;
+                pname = name;
+                src = ./.;
 
-              buildInputs = [ cmake ];
+                buildInputs = with pkgs; [ cmake ];
 
-              configurePhase = ''
-                cmake .
-              '';
+                configurePhase = ''
+                  cmake .
+                '';
 
-              buildPhase = ''
-                make
-              '';
+                buildPhase = ''
+                  make
+                '';
 
-              installPhase = ''
-                mkdir -p $out/bin
-                mv ideal $out/bin/${name}
-              '';
+                installPhase = ''
+                  mkdir -p $out/bin
+                  mv ideal $out/bin/${name}
+                '';
+              };
+
+              unit-tests = pkgs.stdenv.mkDerivation {
+                inherit version;
+                pname = "unit-tests";
+                src = ./.;
+
+                buildInputs = with pkgs; [ cmake gtest ];
+
+                configurePhase = '''';
+
+                buildPhase = ''
+                  cmake --build . --target unit_tests
+                '';
+
+                installPhase = ''
+                  mkdir -p $out/bin
+                  mv unit_tests $out/bin/unit-tests
+                '';
+              };
+            in
+            {
+              inherit ideal;
+              inherit unit-tests;
+              default = ideal;
             };
-          };
         };
     };
 }

@@ -11,4 +11,15 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
       ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-add_executable(ideal main.cpp)
+add_library(math src/math.cpp)
+
+# `idea` executable
+add_executable(ideal src/main.cpp)
+target_link_libraries(ideal math)
+
+# `unit_tests` using googletest
+add_executable(unit_tests test/unit.cpp)
+target_link_libraries(unit_tests math gtest)
+
+# prevent build on all targets build
+set_target_properties(unit_tests PROPERTIES EXCLUDE_FROM_ALL TRUE)
