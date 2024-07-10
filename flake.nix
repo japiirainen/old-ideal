@@ -2,15 +2,16 @@
   description = "Ideal development environment.";
 
   inputs.zig2nix.url = "github:Cloudef/zig2nix";
+  inputs.zls.url = "github:zigtools/zls";
 
-  outputs = { zig2nix, ... }:
+  outputs = { zig2nix, zls, ... }:
     let
       flake-utils = zig2nix.inputs.flake-utils;
     in
     (flake-utils.lib.eachDefaultSystem (system:
       let
 
-        env = zig2nix.outputs.zig-env.${system} { /*SED_ZIG_VER*/ };
+        env = zig2nix.outputs.zig-env.${system} { zig = zig2nix.outputs.packages.${system}.zig.master.bin; };
         system-triple = env.lib.zigTripleFromString system;
       in
       with builtins; with env.lib; with env.pkgs.lib; rec {
@@ -39,7 +40,7 @@
           in
           {
             type = "app";
-            program = "${pkg}/bin/@SED_ZIG_BIN@";
+            program = "${pkg}/bin/master";
           });
 
         apps.bundle.default = apps.bundle.target.${system-triple};
@@ -50,7 +51,7 @@
         apps.deps = env.showExternalDeps;
 
         devShells.default = env.mkShell {
-          packages = with env.pkgs; [ zls ];
+          packages = [ zls.packages.${system}.zls ];
         };
       }));
 }
