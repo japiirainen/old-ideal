@@ -1,77 +1,56 @@
 {
-  description = "Ideal dev environment.";
+  description = "Ideal development environment.";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.zig2nix.url = "github:Cloudef/zig2nix";
 
-  outputs = inputs @ { flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
+  outputs = { zig2nix, ... }:
+    let
+      flake-utils = zig2nix.inputs.flake-utils;
+    in
+    (flake-utils.lib.eachDefaultSystem (system:
+      let
 
-      perSystem =
-        { config
-        , self'
-        , inputs'
-        , pkgs
-        , system
-        , ...
-        }:
-        let
-          name = "ideal";
-          version = "0.0.1";
-        in
-        {
-          devShells.default = pkgs.mkShell {
-            inputsFrom = [ self'.packages.default ];
-            packages = with pkgs; [ gtest ];
-          };
+        env = zig2nix.outputs.zig-env.${system} { /*SED_ZIG_VER*/ };
+        system-triple = env.lib.zigTripleFromString system;
+      in
+      with builtins; with env.lib; with env.pkgs.lib; rec {
+        # nix build .#target.{zig-target}
+        # e.g. nix build .#target.x86_64-linux-gnu
+        packages.target = genAttrs allTargetTriples (target: env.packageForTarget target ({
+          src = cleanSource ./.;
 
-          packages =
-            let
-              ideal = pkgs.stdenv.mkDerivation {
-                inherit version;
-                pname = name;
-                src = ./.;
+          nativeBuildInputs = [ ];
+          buildInputs = [ ];
+          zigPreferMusl = true;
+          zigDisableWrap = true;
+        } // optionalAttrs (!pathExists ./build.zig.zon) {
+          pname = "ideal";
+          version = "0.0.0";
+        }));
 
-                buildInputs = with pkgs; [ cmake ];
-
-                configurePhase = ''
-                  cmake .
-                '';
-
-                buildPhase = ''
-                  make
-                '';
-
-                installPhase = ''
-                  mkdir -p $out/bin
-                  mv ideal $out/bin/${name}
-                '';
-              };
-
-              unit-tests = pkgs.stdenv.mkDerivation {
-                inherit version;
-                pname = "unit-tests";
-                src = ./.;
-
-                buildInputs = with pkgs; [ cmake gtest ];
-
-                configurePhase = '''';
-
-                buildPhase = ''
-                  cmake --build . --target unit_tests
-                '';
-
-                installPhase = ''
-                  mkdir -p $out/bin
-                  mv unit_tests $out/bin/unit-tests
-                '';
-              };
-            in
-            {
-              inherit ideal;
-              inherit unit-tests;
-              default = ideal;
-            };
+        packages.default = packages.target.${system-triple}.override {
+          zigPreferMusl = false;
+          zigDisableWrap = false;
         };
-    };
+
+        apps.bundle.target = genAttrs allTargetTriples (target:
+          let
+            pkg = packages.target.${target};
+          in
+          {
+            type = "app";
+            program = "${pkg}/bin/@SED_ZIG_BIN@";
+          });
+
+        apps.bundle.default = apps.bundle.target.${system-triple};
+        apps.default = env.app [ ] "zig build run -- \"$@\"";
+        apps.build = env.app [ ] "zig build \"$@\"";
+        apps.test = env.app [ ] "zig build test -- \"$@\"";
+        apps.docs = env.app [ ] "zig build docs -- \"$@\"";
+        apps.deps = env.showExternalDeps;
+
+        devShells.default = env.mkShell {
+          packages = with env.pkgs; [ zls ];
+        };
+      }));
 }
