@@ -1,0 +1,8 @@
+collatz : ℕ → ℕ := λ n → 
+  let y := if n % 2 == 0 then n / 2 else n * 3 + 1;
+  (collatz y) + 1
+
+solve : List (ℕ × ℕ) → ℕ :=
+  fst ∘ max_by snd
+
+solve (for i ← (1..10^6) (i, collatz i))

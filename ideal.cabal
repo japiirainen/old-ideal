@@ -1,0 +1,23 @@
+cabal-version:      3.0
+name:               ideal
+version:            0.1.0.0
+license:            Apache-2.0
+license-file:       LICENSE
+author:             AUTHOR
+maintainer:         joona.piirainen@gmail.com
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+extra-source-files: examples/
+
+common warnings
+  ghc-options: -Wall
+
+executable ideal
+  import:           warnings
+  main-is:          Main.hs
+  build-depends:    base ^>=4.18.2.1
+  hs-source-dirs:   bin
+  default-language: Haskell2010
