@@ -24,7 +24,7 @@
         {
           devShells = {
             default = pkgs.mkShell {
-              packages = with haskellPackages; [ cabal-fmt ];
+              packages = with haskellPackages; [ cabal-fmt haskell-language-server ];
               inputsFrom = [ self'.packages.default ];
               buildInputs = with pkgs; [ cabal-install ];
             };
