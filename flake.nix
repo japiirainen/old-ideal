@@ -3,42 +3,49 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-  outputs = inputs @ { flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
-
-      perSystem =
-        { config
-        , self'
-        , inputs'
-        , pkgs
-        , system
-        , ...
-        }:
+  outputs =
+    { nixpkgs
+    , flake-utils
+    , ...
+    }:
+    flake-utils.lib.eachDefaultSystem
+      (
+        system:
         let
-          inherit (pkgs) haskellPackages;
-          inherit (haskellPackages) mkDerivation;
-          name = "ideal";
-          version = "0.1.0";
+          pkgs = import nixpkgs { inherit system; };
+          toolchain = pkgs.rustPlatform;
         in
+        rec
         {
-          devShells = {
-            default = pkgs.mkShell {
-              packages = with haskellPackages; [ cabal-fmt haskell-language-server ];
-              inputsFrom = [ self'.packages.default ];
-              buildInputs = with pkgs; [ cabal-install ];
-            };
-          };
-          packages = {
-            ideal = mkDerivation {
-              inherit version;
-              description = "";
-              license = "";
-              pname = name;
+          packages.ideal =
+            toolchain.buildRustPackage {
+              pname = "ideal";
+              version = "0.0.1";
               src = ./.;
+              cargoLock.lockFile = ./Cargo.lock;
             };
-            default = self'.packages.ideal;
+
+          packages.default = packages.ideal;
+
+          apps.default = flake-utils.lib.mkApp { drv = packages.default; };
+
+          devShells.default = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              # nix
+              nixpkgs-fmt
+              # rust
+              (with toolchain; [
+                cargo
+                rustc
+                rustLibSrc
+                rust-analyzer
+                clippy
+                rustfmt
+              ])
+            ];
+
+            RUST_SRC_PATH = "${toolchain.rustLibSrc}";
           };
-        };
-    };
+        }
+      );
 }

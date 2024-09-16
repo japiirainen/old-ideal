@@ -1,7 +1,3 @@
-# nix
+/target
 result
 .direnv
-
-# haskell
-dist
-dist-*

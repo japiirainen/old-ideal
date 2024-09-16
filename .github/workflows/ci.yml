@@ -1,0 +1,64 @@
+name: CI for `ideal`
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  cargo-test:
+    runs-on: ubuntu-latest
+    name: Rust Tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v17
+
+      - name: cargo check
+        run: make check
+      - name: cargo build
+        run: make build
+      - name: cargo test
+        run: make test
+
+  cargo-fmt:
+    runs-on: ubuntu-latest
+    name: Rust Formatting
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v17
+
+      - name: Run cargo fmt
+        run: make fmt-check
+
+  cargo-clippy:
+    runs-on: ubuntu-latest
+    name: Clippy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v17
+
+      # This is a workaround for https://github.com/oxalica/rust-overlay/issues/54,
+      # avoiding link errors when running cargo commands with `nix develop`.
+      - name: Remove binaries installed in ~/.cargo/bin
+        run: rm --recursive --force --verbose ~/.cargo/bin
+
+      - name: Run cargo clippy
+        run: make clippy
+
+  nixpkgs-fmt:
+    runs-on: ubuntu-latest
+    name: Nix Formatting
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v17
+
+      - name: Run nixpkgs-fmt
+        run: make nixpkgs-fmt-check
